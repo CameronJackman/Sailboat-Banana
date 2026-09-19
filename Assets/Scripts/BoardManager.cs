@@ -75,15 +75,82 @@ public class BoardManager : MonoBehaviour
         return (TokenType)randomIndex;
     }
 
+
+    //the check for any matches 
     private void TestForMatches()
     {
         List<Piece> matches =
             matchDetector.FindMatches(board, width, height);
 
         Debug.Log("Matches found: " + matches.Count);
+
+        foreach (Piece piece in matches)
+        {
+            Debug.Log( "Match at: " + piece.gridposition + " - " + piece.TokenType);
+
+        }
     }
-    
+
+    public Piece GetPiece(Vector2Int position)
+    {
+        if (!IsInsideBoard(position))
+            return null;
+
+        return board[position.x, position.y];
+    }
+
+    private bool IsInsideBoard(Vector2Int position)
+    {
+        return position.x >= 0 && position.x < width && position.y >= 0 && position.y < height;
+    }
+
+
+    public void TrySwap(Vector2Int firstPosition, Vector2Int secondPosition)
+    {
+        if(!IsInsideBoard(firstPosition) || !IsInsideBoard(secondPosition))
+        {
+            return;
+        }
+
+        Piece firstPiece = board[firstPosition.x, firstPosition.y];
+
+        Piece secondPiece = board[secondPosition.x, secondPosition.y];
+
+        if (firstPiece == null || secondPiece == null)
+            return;
+
+        SwapPieces(firstPosition, secondPosition);
+    }
+
+
+    private void SwapPieces(Vector2Int firstPosition, Vector2Int secondPosition)
+    {
+        Piece firstPiece = board[firstPosition.x, firstPosition.y];
+
+        Piece secondPiece = board[secondPosition.x, secondPosition.y];
+
+        board[firstPosition.x, firstPosition.y] = secondPiece;
+
+        board[secondPosition.x, secondPosition.y] = firstPiece;
+
+        firstPiece.gridposition = secondPosition;
+        secondPiece.gridposition = firstPosition;
+
+        Vector3 firstWorldPosition = new Vector3(firstPosition.x, firstPosition.y, 0);
+
+        Vector3 secondWorldPosition = new Vector3(secondPosition.x, secondPosition.y, 0);
+
+        firstPiece.transform.position = secondWorldPosition;
+        secondPiece.transform.position = firstWorldPosition;
+    }
+
+
+
+
+
+
+
 
 }
 
-//10
+
