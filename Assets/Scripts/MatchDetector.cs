@@ -1,6 +1,5 @@
 using UnityEngine;
 using System.Collections.Generic;
-using Microsoft.Extensions.Logging.Abstractions;
 
 public class MatchDetector : MonoBehaviour 
 {

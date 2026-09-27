@@ -11,8 +11,21 @@ public class InputManager : MonoBehaviour
 
     private void Update()
     {
-        HandleMouseInput();
-        HandleTouchInput();
+        if (boardManager.isBusy)
+        {
+            selectedPiece = null;
+            isTouching = false;
+            return;
+        }
+
+        if (Input.touchCount > 0)
+        {
+            HandleTouchInput();
+        }
+        else
+        {
+            HandleMouseInput();
+        }
     }
 
 

@@ -1,8 +1,8 @@
-using NUnit.Framework;
 using UnityEngine;
-using UnityEngine.SceneManagement;
+using System.Collections;
 using System.Collections.Generic;
-using Unity.Mathematics;
+using UnityEngine.Rendering.Universal;
+using Unity.VisualScripting;
 
 public class BoardManager : MonoBehaviour
 {
@@ -21,6 +21,12 @@ public class BoardManager : MonoBehaviour
     [Header("Match Detection")]
     [SerializeField] private MatchDetector matchDetector;
 
+    [Header("Board Timing")]
+    [SerializeField] private float matchDelay = 0.25f;
+    [SerializeField] private float fallDelay = 0.15f;
+
+    public bool isBusy { get; private set; }
+
     private void Awake()
     {
         //creates board grid 
@@ -31,6 +37,7 @@ public class BoardManager : MonoBehaviour
     {
         //creates a board on start with the given size of the board
         CreateBoard();
+        StartCoroutine(ResolveBoard());
     }
 
     private void CreateBoard()
@@ -47,11 +54,11 @@ public class BoardManager : MonoBehaviour
     }
 
     //creates a piece for every grid point 
-    private void CreatePiece(int x, int y)
+    private void CreatePiece(int x, int y, int spawnOffset = 0)
     {
         TokenType type = GetRandomToken();
 
-        Vector3 worldPos = new Vector3(x, y, 0);
+        Vector3 worldPos = new Vector3(x, y + spawnOffset, 0);
 
         GameObject pieceObj = Instantiate(
             piecePrefab,
@@ -65,6 +72,8 @@ public class BoardManager : MonoBehaviour
         piece.gridposition = new Vector2Int(x, y);
 
         board[x, y] = piece;
+
+        piece.MoveTo(new Vector3(x, y, 0));
 
     }
 
@@ -108,6 +117,9 @@ public class BoardManager : MonoBehaviour
 
     public void TrySwap(Vector2Int firstPosition, Vector2Int secondPosition)
     {
+        if(isBusy) return;
+
+
         //checks if the piece swapped is inside the game grid
         if(!IsInsideBoard(firstPosition) || !IsInsideBoard(secondPosition))
         {
@@ -134,26 +146,35 @@ public class BoardManager : MonoBehaviour
         {
             return;
         }
-           
+
         //performs the swaps
+        StartCoroutine(SwapAndResolve(firstPosition, secondPosition));
+    }
+
+    private IEnumerator SwapAndResolve(Vector2Int firstPosition, Vector2Int secondPosition)
+    {
+        isBusy = true;
+
         SwapPieces(firstPosition, secondPosition);
 
-        //Check if swapping created a line up of 3 or more or a match
-        List<Piece> matches = matchDetector.FindMatches(board, width, height);
+        yield return new WaitUntil(() => !ArePiecesMoving());
 
+        List <Piece> matches = matchDetector.FindMatches(board, width, height);
+        
         if (matches.Count > 0)
         {
-            Debug.Log("Valid swap");
-
-            DestroyMatches(matches);
+            yield return StartCoroutine(ResolveBoard());
         }
         else
         {
-            Debug.Log("Invalid Swap, (swap pieces back)");
+            yield return new WaitForSeconds(0.1f);
 
-            //no match therefore return the swap
             SwapPieces(firstPosition, secondPosition);
+
+            yield return new WaitUntil(() => !ArePiecesMoving());
         }
+
+        isBusy = false;
     }
 
     //destroy any current matches
@@ -161,6 +182,10 @@ public class BoardManager : MonoBehaviour
     {
         foreach (Piece piece in matches)
         {
+
+            if (piece == null)
+                continue;
+
             Vector2Int position = piece.gridposition;
 
             //remove piece from array
@@ -169,22 +194,39 @@ public class BoardManager : MonoBehaviour
             //Destroy gameobj
             Destroy(piece.gameObject);
         }
-
-        CollapseBoard();
-        RefillBoard();
-
-        CheckForAfterMatches();
     }
 
-    //Check for matches that are made after a match that was made 
-    private void CheckForAfterMatches()
+    private IEnumerator ResolveBoard()
     {
+        isBusy = true;
+
+        yield return new WaitUntil(() => !ArePiecesMoving());
+
         List<Piece> matches = matchDetector.FindMatches(board, width, height);
 
-        if (matches.Count > 0)
+        while(matches.Count > 0)
         {
-            DestroyMatches(matches );
+            //give player time to see the match 
+            yield return new WaitForSeconds(matchDelay);
+
+            DestroyMatches(matches);
+
+            //show gaps before moving remaining pieces
+            yield return new WaitForSeconds(fallDelay);
+
+            CollapseBoard();
+
+            yield return new WaitUntil(() => !ArePiecesMoving());
+
+            RefillBoard();
+
+            //let board refill before checking again
+            yield return new WaitUntil(() => !ArePiecesMoving());
+
+            matches = matchDetector.FindMatches(board, width, height);
         }
+
+        isBusy = false;
     }
 
 
@@ -213,7 +255,7 @@ public class BoardManager : MonoBehaviour
 
                     piece.gridposition = new Vector2Int(x, newY);
 
-                    piece.transform.position = new Vector3(x, newY, 0);
+                    piece.MoveTo(new Vector3(x, newY, 0));
                 }
             }
         }
@@ -228,7 +270,7 @@ public class BoardManager : MonoBehaviour
             {
                 if(board[x, y] == null)
                 {
-                    CreatePiece(x, y);
+                    CreatePiece(x, y, height);
                 }
             }
         }
@@ -251,8 +293,25 @@ public class BoardManager : MonoBehaviour
 
         Vector3 secondWorldPosition = new Vector3(secondPosition.x, secondPosition.y, 0);
 
-        firstPiece.transform.position = secondWorldPosition;
-        secondPiece.transform.position = firstWorldPosition;
+        firstPiece.MoveTo(secondWorldPosition);
+        secondPiece.MoveTo(firstWorldPosition);
+    }
+
+    private bool ArePiecesMoving()
+    {
+        for(int x = 0; x < width; x++)
+        {
+            for (int y = 0; y< height; y++)
+            {
+                Piece piece = board[x, y];
+
+                if(piece != null && piece.IsMoving)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
 
