@@ -27,6 +27,9 @@ public class BoardManager : MonoBehaviour
 
     public bool isBusy { get; private set; }
 
+    [Header("Level")]
+    [SerializeField] private LevelManager levelManager;
+
     private void Awake()
     {
         //creates board grid 
@@ -37,7 +40,8 @@ public class BoardManager : MonoBehaviour
     {
         //creates a board on start with the given size of the board
         CreateBoard();
-        StartCoroutine(ResolveBoard());
+        //clears starting matches without awarding points
+        StartCoroutine(ResolveBoard(false));
     }
 
     private void CreateBoard()
@@ -163,7 +167,7 @@ public class BoardManager : MonoBehaviour
         
         if (matches.Count > 0)
         {
-            yield return StartCoroutine(ResolveBoard());
+            yield return StartCoroutine(ResolveBoard(true));
         }
         else
         {
@@ -196,7 +200,7 @@ public class BoardManager : MonoBehaviour
         }
     }
 
-    private IEnumerator ResolveBoard()
+    private IEnumerator ResolveBoard(bool awardPoints)
     {
         isBusy = true;
 
@@ -208,6 +212,12 @@ public class BoardManager : MonoBehaviour
         {
             //give player time to see the match 
             yield return new WaitForSeconds(matchDelay);
+
+            //player triggered matches earn points
+            if (awardPoints)
+            {
+                levelManager.AddClearedTokens(matches.Count);
+            }
 
             DestroyMatches(matches);
 
