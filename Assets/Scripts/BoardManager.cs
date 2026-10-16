@@ -30,6 +30,9 @@ public class BoardManager : MonoBehaviour
     [Header("Level")]
     [SerializeField] private LevelManager levelManager;
 
+    public int Width => width;
+    public int Height => height;
+
     private void Awake()
     {
         //creates board grid 
@@ -121,7 +124,7 @@ public class BoardManager : MonoBehaviour
 
     public void TrySwap(Vector2Int firstPosition, Vector2Int secondPosition)
     {
-        if(isBusy) return;
+        if(isBusy || !levelManager.HasMovesRemaining) return;
 
 
         //checks if the piece swapped is inside the game grid
@@ -167,7 +170,15 @@ public class BoardManager : MonoBehaviour
         
         if (matches.Count > 0)
         {
+            //uses a move from remaining moves
+            levelManager.UseMove();
+
             yield return StartCoroutine(ResolveBoard(true));
+
+            if (!levelManager.HasMovesRemaining)
+            {
+                Debug.Log("No moves remaining! Final Score: " + levelManager.CurrentScore);
+            }
         }
         else
         {
