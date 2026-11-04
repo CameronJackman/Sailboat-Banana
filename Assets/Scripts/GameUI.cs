@@ -6,7 +6,9 @@ public class GameUI : MonoBehaviour
     [Header("References")]
     [SerializeField] private LevelManager levelManager;
     [SerializeField] private TMP_Text scoreText;
+    [SerializeField] private TMP_Text mobileScoreText;
     [SerializeField] private TMP_Text movesText;
+    [SerializeField] private TMP_Text mobileMovesText;
 
     private int lastScore = -1;
     private int lastMoves = -1;
@@ -32,6 +34,8 @@ public class GameUI : MonoBehaviour
         lastMoves = levelManager.MovesRemaining;
 
         scoreText.text = "Score: " + lastScore;
+        mobileScoreText.text = "Score: " + lastScore;
         movesText.text = "" + lastMoves;
+        mobileMovesText.text = "" + lastMoves;
     }
 }

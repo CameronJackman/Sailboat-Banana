@@ -124,7 +124,7 @@ public class BoardManager : MonoBehaviour
 
     public void TrySwap(Vector2Int firstPosition, Vector2Int secondPosition)
     {
-        if(isBusy || !levelManager.HasMovesRemaining) return;
+        if(isBusy || !levelManager.CanPlay) return;
 
 
         //checks if the piece swapped is inside the game grid
@@ -175,10 +175,7 @@ public class BoardManager : MonoBehaviour
 
             yield return StartCoroutine(ResolveBoard(true));
 
-            if (!levelManager.HasMovesRemaining)
-            {
-                Debug.Log("No moves remaining! Final Score: " + levelManager.CurrentScore);
-            }
+            levelManager.CheckLevelResult();
         }
         else
         {
