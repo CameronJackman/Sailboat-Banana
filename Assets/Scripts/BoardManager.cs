@@ -174,8 +174,6 @@ public class BoardManager : MonoBehaviour
             levelManager.UseMove();
 
             yield return StartCoroutine(ResolveBoard(true));
-
-            levelManager.CheckLevelResult();
         }
         else
         {
@@ -224,7 +222,17 @@ public class BoardManager : MonoBehaviour
             //player triggered matches earn points
             if (awardPoints)
             {
+                //award score for all matched 
                 levelManager.AddClearedTokens(matches.Count);
+
+                //trach each collected type
+                foreach (Piece piece in matches)
+                {
+                    if (piece != null)
+                    {
+                        levelManager.AddCollectedToken(piece.TokenType);
+                    }
+                }
             }
 
             DestroyMatches(matches);
@@ -243,6 +251,20 @@ public class BoardManager : MonoBehaviour
 
             matches = matchDetector.FindMatches(board, width, height);
         }
+
+        //evaluate final result
+        if (awardPoints)
+        {
+            levelManager.CheckLevelResult();
+        }
+        //reshuffle if the player can play still
+        if (levelManager.CanPlay && !HasPossibleMoves())
+        {
+            Debug.Log("No Possible moves... Reshuffling...");
+
+            yield return StartCoroutine(ReshuffleBoard());
+        }
+
 
         isBusy = false;
     }
@@ -332,13 +354,185 @@ public class BoardManager : MonoBehaviour
         return false;
     }
 
+    private bool HasPossibleMoves()
+    {
+        for (int x = 0; x < width; x++)
+        {
+            for (int y =0; y < height; y++)
+            {
+
+                //this checks swaping with the token to the right
+                if (x < width - 1)
+                {
+                    if (WouldSwapCreateMatch(x, y, x + 1, y))
+                    {
+                        return true;
+                    }
+                }
+
+                //Checks swaping with token above.
+                if (y < height - 1)
+                {
+                    if (WouldSwapCreateMatch(x, y, x, y+1))
+                    {
+                        return true;
+                    }
+                }
+
+            }
+        }
+
+        return false;
+    }
+
+
+    private bool WouldSwapCreateMatch(int x1, int y1, int x2, int y2)
+    {
+        Piece first = board[x1, y1];
+        Piece second = board[x2, y2];
+            
+        //swap identical colors changes nothing
+        if (first == null || second == null) { return false; }
+
+        //temp swap in array
+        board[x1, y1] = second;
+        board[x2, y2] = first;
+
+        //Check if a match would exist
+        bool createsMatch = matchDetector.FindMatches(board, width, height).Count > 0;
+
+        //restore to the original board
+        board[x1, y1] = first;
+        board[x2, y2] = second;
+
+        return createsMatch;
+    }
+
+    private IEnumerator ReshuffleBoard()
+    {
+        //save the original token placement
+        List<Piece> originalPieces = new List<Piece>();
+
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                originalPieces.Add(board[x, y]);
+            }
+        }
+
+        List<Piece> shuffledPieces = new List<Piece>(originalPieces);
+
+        bool validArrangement = false;
+
+        //get system to try different arrangements untill we find one
+        //with no exsisteing matches but having at least one move
+
+        for(int attempt = 0; attempt < 300; attempt++)
+        {
+            ShufflePieceList(shuffledPieces);
+
+            ApplyPieceArrangement(shuffledPieces);
+
+            bool hasMatches = matchDetector.FindMatches(board, width, height).Count > 0;
+
+            if (!hasMatches && HasPossibleMoves())
+            {
+                validArrangement = true;
+                break;
+            }
+        }
+
+        if (!validArrangement)
+        {
+            //restore to original
+            ApplyPieceArrangement(originalPieces);
+
+            Debug.LogWarning("Couldn't reshuffle / Error finding suitable board");
+
+            yield break;
+        }
+
+        Debug.Log("board reshuffled successfully");
+
+        //animate tokens to the new positions
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y <height; y++)
+            {
+                Piece piece = board[x, y];
+
+                piece.MoveTo(new Vector3(x, y, 0));
+            }
+        }
+
+        //wait until animation is done
+        yield return new WaitUntil(() => !ArePiecesMoving());
+    }
+
+    private void ShufflePieceList(List<Piece> pieces)
+    {
+        //Shuffle
+        for (int i = pieces.Count - 1; i > 0; i--)
+        {
+            int randomIndex = UnityEngine.Random.Range(0, i + 1);
+
+            Piece temp = pieces[i];
+
+            pieces[i] = pieces[randomIndex];
+
+            pieces[randomIndex] = temp;
+        }
+    }
+
+    private void ApplyPieceArrangement(List<Piece> pieces)
+    {
+        int index = 0;
+
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                Piece piece = pieces[index];
+
+                board[x, y] = piece;
+
+                piece.gridposition = new Vector2Int(x, y);
+
+                index++;
+            }
+        }
+    }
 
 
 
+    //Reshufle Test ??????
+    [ContextMenu("Test Reshuffle")]
+    private void TestReshuffle()
+    {
+        //Debug.Log("TEST RESHUFFLE CALLED");
 
+        //Debug.Log("Is Busy: " + isBusy);
+        //Debug.Log("Can Play: " + levelManager.CanPlay);
 
+        if (!Application.isPlaying || isBusy || !levelManager.CanPlay)
+        {
+            Debug.LogWarning("Reshuffle was blocked!");
+            return;
+        }
 
+        //Debug.Log("Starting reshuffle...");
+        StartCoroutine(TestReshuffleRoutine());
+    }
 
+    private IEnumerator TestReshuffleRoutine()
+    {
+        isBusy = true;
+
+        yield return StartCoroutine(ReshuffleBoard());
+
+        isBusy = false;
+    }
 }
 
 

@@ -114,3 +114,4 @@ MonoBehaviour:
   yellowSprite: {fileID: 6358040702757662528, guid: b3221a1e33770694884cac78d7f2a1fd, type: 3}
   purpleSprite: {fileID: -8923911374754931897, guid: 5efc9fec0904385479744fe7697e138c, type: 3}
   orangeSprite: {fileID: 4121880872312635667, guid: 5655498f065150948a57f2e9829a2901, type: 3}
+  moveDuration: 0.2

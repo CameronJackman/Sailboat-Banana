@@ -26,6 +26,7 @@ public class GameUI : MonoBehaviour
 
     private int lastScore = -1;
     private int lastMoves = -1;
+    private int lastObjectiveProgressVersion = -1;
     private LevelState lastState = LevelState.Playing;
 
     private void Start()
@@ -37,7 +38,9 @@ public class GameUI : MonoBehaviour
     {
         // Only change the text when a value changes.
         if (levelManager.CurrentScore != lastScore ||
-            levelManager.MovesRemaining != lastMoves)
+            levelManager.MovesRemaining != lastMoves ||
+            levelManager.ObjectiveProgressVersion != lastObjectiveProgressVersion ||
+            levelManager.CurrentState != lastState)
         {
             RefreshDisplay();
         }
@@ -48,9 +51,10 @@ public class GameUI : MonoBehaviour
         lastScore = levelManager.CurrentScore;
         lastMoves = levelManager.MovesRemaining;
         lastState = levelManager.CurrentState;
+        lastObjectiveProgressVersion = levelManager.ObjectiveProgressVersion;
 
         //score updates
-        string scoreDisplay = "Score: " + lastScore;
+        string scoreDisplay = levelManager.ObjectiveProgressText;
 
         if (scoreText != null)
         {
@@ -68,11 +72,11 @@ public class GameUI : MonoBehaviour
         }
         if (mobileMovesText != null)
         {
-            mobileMovesText.text = lastState.ToString();
+            mobileMovesText.text = lastMoves.ToString();
         }
 
         //update Objective
-        string goalDisplay = "Goal: " + levelManager.TargetScore;
+        string goalDisplay = levelManager.ObjectiveProgressText;
 
         if (goalText != null)
         {
@@ -93,7 +97,7 @@ public class GameUI : MonoBehaviour
 
         bool levelEnded = state != LevelState.Playing;
 
-        if (endScreen == null) return;
+        if (endScreen == null) { return; }
 
         if (levelEnded)
         {
