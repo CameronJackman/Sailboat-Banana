@@ -12,7 +12,8 @@ public enum LevelState
 public enum LevelObjectiveType
 {
     TargetScore,
-    CollectToken
+    CollectToken,
+    ClearObstacles
 }
 
 [Serializable]
@@ -60,6 +61,9 @@ public class LevelManager : MonoBehaviour
 
     public int ObjectiveCount => objectives.Count;
 
+    //obstacle variable
+    public int ClearedObstacles {  get; private set; }
+
     private void Awake()
     {
         CurrentScore = 0;
@@ -80,6 +84,18 @@ public class LevelManager : MonoBehaviour
         }
     }
 
+
+    //obstacles
+    public void AddClearedObstacle()
+    {
+        if (CurrentState != LevelState.Playing) return;
+
+        ClearedObstacles++;
+
+        ObjectiveProgressVersion++;
+
+
+    }
 
     //Score
 
@@ -152,6 +168,11 @@ public class LevelManager : MonoBehaviour
             return CurrentScore;
         }
 
+        if(objective.type == LevelObjectiveType.ClearObstacles)
+        {
+            return ClearedObstacles;
+        }
+
         return collectedCounts[index];
     }
 
@@ -194,6 +215,11 @@ public class LevelManager : MonoBehaviour
                         "Score: " + progress + "/" +
                         objective.requiredAmount
                     );
+                }
+                else if (objective.type == LevelObjectiveType.ClearObstacles)
+                {
+                    lines.Add(
+                        "Obstacles: " + progress + "/" + objective.requiredAmount);
                 }
                 else
                 {

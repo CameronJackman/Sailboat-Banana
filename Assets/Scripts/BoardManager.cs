@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.Rendering.Universal;
 using Unity.VisualScripting;
+using System.Reflection.Metadata.Ecma335;
 
 public class BoardManager : MonoBehaviour
 {
@@ -30,6 +31,13 @@ public class BoardManager : MonoBehaviour
     [Header("Level")]
     [SerializeField] private LevelManager levelManager;
 
+    [Header("Obstacles")]
+    [SerializeField] private BreakableTile obstablePrefab;
+
+    [SerializeField] private Vector2Int[] obstacleCells = {new Vector2Int(3, 3), new Vector2Int(4, 3), new Vector2Int(3, 4) };
+    private BreakableTile[,] obstacles;
+
+
     public int Width => width;
     public int Height => height;
 
@@ -37,12 +45,17 @@ public class BoardManager : MonoBehaviour
     {
         //creates board grid 
         board = new Piece[width, height];
+
+        obstacles = new BreakableTile[width, height];
     }
 
     private void Start()
     {
         //creates a board on start with the given size of the board
         CreateBoard();
+
+        CreateObstacles();
+
         //clears starting matches without awarding points
         StartCoroutine(ResolveBoard(false));
     }
@@ -58,6 +71,35 @@ public class BoardManager : MonoBehaviour
         }
 
         TestForMatches();
+    }
+
+    private void CreateObstacles()
+    {
+        if(obstablePrefab == null)
+        {
+            return;
+        }
+
+        foreach (Vector2Int position in obstacleCells)
+        {
+            //skips any positions outside board 
+            if (!IsInsideBoard(position))
+            {
+                continue;
+            }
+
+            //avoiding spawning two obstacles in the same position
+            if (obstacles[position.x, position.y] != null)
+            {
+                continue;
+            }
+
+            Vector3 spawnPosition = new Vector3(position.x, position.y, 0f);
+
+            BreakableTile newObstacle = Instantiate(obstablePrefab, spawnPosition, Quaternion.identity, transform);
+
+            obstacles[position.x, position.y] = newObstacle;
+        }
     }
 
     //creates a piece for every grid point 
@@ -206,6 +248,34 @@ public class BoardManager : MonoBehaviour
         }
     }
 
+    private void DamageObstaclesOnMatches(List<Piece> matches)
+    {
+        foreach (Piece piece in matches)
+        {
+            if (piece == null)
+            {
+                continue;
+            }
+
+            Vector2Int position = piece.gridposition;
+
+            if (!IsInsideBoard(position)) continue;
+
+            BreakableTile obstacle = obstacles[position.x, position.y];
+
+            if (obstacle == null) continue;
+
+            bool destroyed = obstacle.TakeHit();
+
+            if (destroyed)
+            {
+                obstacles[position.x, position.y] = null;
+
+                levelManager.AddClearedObstacle();
+            }
+        }
+    }
+
     private IEnumerator ResolveBoard(bool awardPoints)
     {
         isBusy = true;
@@ -233,6 +303,12 @@ public class BoardManager : MonoBehaviour
                         levelManager.AddCollectedToken(piece.TokenType);
                     }
                 }
+            }
+
+
+            if (awardPoints)
+            {
+                DamageObstaclesOnMatches(matches);
             }
 
             DestroyMatches(matches);
@@ -533,6 +609,33 @@ public class BoardManager : MonoBehaviour
 
         isBusy = false;
     }
+
+    [ContextMenu("Test Hit Obstacle")]
+    private void TestHitObstacle()
+    {
+        if (!Application.isPlaying || isBusy) return;
+
+        foreach (Vector2Int position in obstacleCells)
+        {
+            if (!IsInsideBoard(position)) continue;
+
+            BreakableTile obstacle = obstacles[position.x, position.y];
+
+            if(obstacle == null) continue;
+
+            bool destroyed = obstacle.TakeHit();
+
+            if (destroyed)
+            {
+                obstacles[position.x, position.y] = null;
+            }
+
+            return;
+        }
+    }
+
+
+
 }
 
 
