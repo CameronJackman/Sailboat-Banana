@@ -5046,16 +5046,13 @@ MonoBehaviour:
   objectives:
   - type: 0
     tokenType: 0
-    requiredAmount: 500
+    requiredAmount: 200
   - type: 1
-    tokenType: 1
-    requiredAmount: 9
-  - type: 1
-    tokenType: 2
-    requiredAmount: 9
+    tokenType: 0
+    requiredAmount: 5
   - type: 2
-    tokenType: 2
-    requiredAmount: 1
+    tokenType: 0
+    requiredAmount: 2
   startingMoves: 20
 --- !u!1 &1195750181
 GameObject:

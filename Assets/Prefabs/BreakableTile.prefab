@@ -105,6 +105,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e094c482a721b34282ab110746ff393, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BreakableTile
-  startingHealth: 2
+  startingHealth: 1
   fullHealthColor: {r: 0.2, g: 0.65, b: 1, a: 0.55}
   damagedColor: {r: 0.8, g: 0.9, b: 1, a: 0.25}
