@@ -82,7 +82,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
+  m_Sprite: {fileID: 6286595657586805340, guid: 25500b1da42ee8c4d9cd081f214d03d9, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -107,6 +107,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Piece
   TokenType: 0
   powerupType: 0
+  horizontalPowerupVisualPrefab: {fileID: 7870948836175544487, guid: 653568021098dd3468c3a76d92166607, type: 3}
+  verticalPowerupVisualPrefab: {fileID: 3471412265943613292, guid: 52311656b16347441a3221cb741a79c7, type: 3}
   gridposition: {x: 0, y: 0}
   redSprite: {fileID: 6286595657586805340, guid: 25500b1da42ee8c4d9cd081f214d03d9, type: 3}
   blueSprite: {fileID: -6429493399158520243, guid: 549af249d020bcc4bb8d9e01812754c7, type: 3}

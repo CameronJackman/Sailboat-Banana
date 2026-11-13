@@ -1,9 +1,6 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine.Rendering.Universal;
-using Unity.VisualScripting;
-using System.Reflection.Metadata.Ecma335;
 
 public class BoardManager : MonoBehaviour
 {
@@ -215,7 +212,7 @@ public class BoardManager : MonoBehaviour
             //uses a move from remaining moves
             levelManager.UseMove();
 
-            yield return StartCoroutine(ResolveBoard(true));
+            yield return StartCoroutine(ResolveBoard(true, firstPosition, secondPosition));
         }
         else
         {
@@ -276,7 +273,7 @@ public class BoardManager : MonoBehaviour
         }
     }
 
-    private IEnumerator ResolveBoard(bool awardPoints)
+    private IEnumerator ResolveBoard(bool awardPoints, Vector2Int? firstSwap = null, Vector2Int? secondSwap = null)
     {
         isBusy = true;
 
@@ -284,10 +281,24 @@ public class BoardManager : MonoBehaviour
 
         List<Piece> matches = matchDetector.FindMatches(board, width, height);
 
+        bool firstMatchResolution = true;
+
         while(matches.Count > 0)
         {
             //give player time to see the match 
             yield return new WaitForSeconds(matchDelay);
+
+            if (awardPoints)
+            {
+                DamageObstaclesOnMatches(matches);
+
+                if(firstMatchResolution && firstSwap.HasValue && secondSwap.HasValue)
+                {
+                    TryCreateLinePowerup(matches, firstSwap.Value, secondSwap.Value);
+                }
+            }
+
+            firstMatchResolution = false;
 
             //player triggered matches earn points
             if (awardPoints)
@@ -303,12 +314,6 @@ public class BoardManager : MonoBehaviour
                         levelManager.AddCollectedToken(piece.TokenType);
                     }
                 }
-            }
-
-
-            if (awardPoints)
-            {
-                DamageObstaclesOnMatches(matches);
             }
 
             DestroyMatches(matches);
@@ -483,6 +488,140 @@ public class BoardManager : MonoBehaviour
 
         return createsMatch;
     }
+
+    private int CountMatchingTokens(Vector2Int position, Vector2Int direction, TokenType type)
+    {
+        int count = 0;
+
+        Vector2Int checkPosition = position + direction;
+
+        while (IsInsideBoard(checkPosition))
+        {
+            Piece piece = board[checkPosition.x, checkPosition.y];
+
+            if (piece == null || piece.TokenType != type) break;
+
+            count++;
+
+            checkPosition += direction;
+        }
+
+        return count;
+    }
+
+    private PowerupType GetFourMatchPowerup(Vector2Int position)
+    {
+        Piece piece = GetPiece(position);
+
+        if (piece == null) return PowerupType.none;
+
+        TokenType type = piece.TokenType;
+
+        //count matched tokens horizontally
+        int horizontalCount = 1;
+
+        horizontalCount += CountMatchingTokens(position, Vector2Int.left, type);
+
+        horizontalCount += CountMatchingTokens(position, Vector2Int.right, type);
+
+        //count matched tokens vertically
+        int verticalCount = 1;
+
+        verticalCount += CountMatchingTokens(position, Vector2Int.up, type);
+
+        verticalCount += CountMatchingTokens(position, Vector2Int.down, type);
+
+        if (horizontalCount >= 4) return PowerupType.Horizontal;
+
+        if (verticalCount >= 4) return PowerupType.Vertical;
+
+        return PowerupType.none;
+    }
+
+    private void TryCreateLinePowerup(List<Piece> matches, Vector2Int firstPosition, Vector2Int secondPosition)
+    {
+        Vector2Int[] positions = {secondPosition, firstPosition};
+
+        foreach (Vector2Int position in positions)
+        {
+            Piece piece = GetPiece(position);
+
+            if (piece == null) continue;
+
+            if (!matches.Contains(piece)) continue;
+
+            PowerupType type = GetFourMatchPowerup(position);
+
+            if (type == PowerupType.none) continue;
+
+            //this piece is the left over piece from a 4 match
+            matches.Remove(piece);
+
+            //turn the piece into a powerup
+            piece.SetPowerupType(type);
+
+            //Debug.Log("Created " + type + " powerup at " + position);
+
+            return;
+        }
+    }
+
+    private void ExpandPowerupClears(List<Piece> matches)
+    {
+        //this tracks tokens that are going to be destroyed
+        HashSet<Piece> AffectedPieces = new HashSet<Piece>(matches);
+
+        Queue<Piece> powerupQueue = new Queue<Piece>(matches);
+
+        while(powerupQueue.Count > 0) 
+        {
+            Piece piece = powerupQueue.Dequeue();
+
+            if (piece == null || piece.powerupType == PowerupType.none)
+            {
+                continue;
+            }
+
+            Vector2Int position = piece.gridposition;
+
+            //horizontal powerup::
+            if (piece.powerupType == PowerupType.Horizontal)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    Piece target = board[x, position.y];
+
+                    if (target != null && AffectedPieces.Add(target))
+                    {
+                        powerupQueue.Enqueue(target);
+                    }
+                }
+
+                Debug.Log("HorizontalPowerup Activated");
+            }
+
+            //vertical powerup::
+            else if (piece.powerupType == PowerupType.Vertical)
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    Piece target = board[position.x, y];
+
+                    if(target != null && AffectedPieces.Add(target))
+                    {
+                        powerupQueue.Enqueue(target);
+                    }
+                }
+                Debug.Log("Vertical Powerup Activated");
+            }
+        }
+
+        //replace the match list with all the tokens affected by powerup
+        matches.Clear();
+        matches.AddRange(AffectedPieces);
+    }
+
+
 
     private IEnumerator ReshuffleBoard()
     {

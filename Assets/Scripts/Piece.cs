@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections;
 using System.Reflection.Metadata.Ecma335;
+using JetBrains.Annotations;
 
 
 public class Piece : MonoBehaviour
@@ -10,6 +11,11 @@ public class Piece : MonoBehaviour
 
     [Header("Powerup")]
     public PowerupType powerupType;
+
+    [Header("Powerup Visual Prefabs")]
+    [SerializeField] private GameObject horizontalPowerupVisualPrefab;
+    [SerializeField] private GameObject verticalPowerupVisualPrefab;
+    private GameObject currentPowerupVisual;
 
     [Header("Grid Position")]
     public Vector2Int gridposition;
@@ -42,6 +48,36 @@ public class Piece : MonoBehaviour
         TokenType = type;
 
         spriteRenderer.sprite = GetSpriteForToken(type);
+    }
+
+    public void SetPowerupType(PowerupType type)
+    {
+        powerupType = type;
+
+        if (currentPowerupVisual != null)
+        {
+            Destroy(currentPowerupVisual);
+            currentPowerupVisual = null;
+        }
+
+        GameObject prefabToSpawn = null;
+
+        if (type == PowerupType.Horizontal)
+        {
+            prefabToSpawn = horizontalPowerupVisualPrefab;
+        }
+        else if (type == PowerupType.Vertical)
+        {
+            prefabToSpawn = verticalPowerupVisualPrefab;
+        }
+
+        if (prefabToSpawn == null) return;
+
+        currentPowerupVisual = Instantiate(prefabToSpawn, transform);
+
+        currentPowerupVisual.transform.localPosition = Vector3.zero;
+
+        //currentPowerupVisual.transform.localRotation = Quaternion.identity;
     }
 
     //this is what actually sets each type
@@ -135,7 +171,7 @@ public enum PowerupType
     Horizontal,
     Vertical,
     Bomb,
-    Orange
+    ClearColor
 }
 
 
