@@ -109,6 +109,8 @@ MonoBehaviour:
   powerupType: 0
   horizontalPowerupVisualPrefab: {fileID: 7870948836175544487, guid: 653568021098dd3468c3a76d92166607, type: 3}
   verticalPowerupVisualPrefab: {fileID: 3471412265943613292, guid: 52311656b16347441a3221cb741a79c7, type: 3}
+  bombPowerupVisualPrefab: {fileID: 8263740381870099454, guid: 4ac72d3b6c5240244918441538a1e3c8, type: 3}
+  colorClearVisualPrefab: {fileID: 4675519808465316487, guid: cd2c9783db9217640947cad302964154, type: 3}
   gridposition: {x: 0, y: 0}
   redSprite: {fileID: 6286595657586805340, guid: 25500b1da42ee8c4d9cd081f214d03d9, type: 3}
   blueSprite: {fileID: -6429493399158520243, guid: 549af249d020bcc4bb8d9e01812754c7, type: 3}

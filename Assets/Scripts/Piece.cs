@@ -1,11 +1,52 @@
 using UnityEngine;
 using System.Collections;
-using System.Reflection.Metadata.Ecma335;
-using JetBrains.Annotations;
-
 
 public class Piece : MonoBehaviour
 {
+    //color clear test
+    [ContextMenu("Test Color Clear Powerup")]
+    private void TestColorClearPowerup()
+    {
+        if (!Application.isPlaying)
+        {
+            return;
+        }
+
+        SetPowerupType(PowerupType.ClearColor);
+    }
+
+    //bomb test 
+    [ContextMenu("Test Bomb Powerup")]
+    private void TestBombPowerup()
+    {
+        if (!Application.isPlaying)
+            return;
+
+        SetPowerupType(PowerupType.Bomb);
+    }
+
+    //Horizontal PowerupTest
+    [ContextMenu("Test Horizontal Powerup")]
+    private void TestHorizontalPowerup()
+    {
+        if (!Application.isPlaying)
+            return;
+
+        SetPowerupType(PowerupType.Horizontal);
+    }
+
+
+    //Vertical PowerupTest
+    [ContextMenu("Test Vertical Powerup")]
+    private void TestVerticalPowerup()
+    {
+        if (!Application.isPlaying)
+            return;
+
+        SetPowerupType(PowerupType.Vertical);
+    }
+
+
     [Header("Token Type")]
     public TokenType TokenType;
 
@@ -15,6 +56,9 @@ public class Piece : MonoBehaviour
     [Header("Powerup Visual Prefabs")]
     [SerializeField] private GameObject horizontalPowerupVisualPrefab;
     [SerializeField] private GameObject verticalPowerupVisualPrefab;
+    [SerializeField] private GameObject bombPowerupVisualPrefab;
+    [SerializeField] private GameObject colorClearVisualPrefab;
+
     private GameObject currentPowerupVisual;
 
     [Header("Grid Position")]
@@ -69,6 +113,14 @@ public class Piece : MonoBehaviour
         else if (type == PowerupType.Vertical)
         {
             prefabToSpawn = verticalPowerupVisualPrefab;
+        }
+        else if (type == PowerupType.Bomb)
+        {
+            prefabToSpawn = bombPowerupVisualPrefab;
+        }
+        else if (type == PowerupType.ClearColor)
+        {
+            prefabToSpawn = colorClearVisualPrefab;
         }
 
         if (prefabToSpawn == null) return;

@@ -2,8 +2,11 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
+
+
 public class BoardManager : MonoBehaviour
 {
+
     //board size
     [Header("Board Size")]
     [SerializeField] private int width = 8;
@@ -201,9 +204,61 @@ public class BoardManager : MonoBehaviour
     {
         isBusy = true;
 
+        //get pieces before swap
+        Piece firstPiece = board[firstPosition.x, firstPosition.y];
+
+        Piece secondPiece = board[secondPosition.x, secondPosition.y];
+
+        bool firstIsColorClear = firstPiece.powerupType == PowerupType.ClearColor;
+
+        bool secondIsColorClear = secondPiece.powerupType == PowerupType.ClearColor;
+
+        //Come back to this // color clear + color clear combo
+        if (firstIsColorClear && secondIsColorClear)
+        {
+            //Animate the powerups swapping
+            SwapPieces(firstPosition, secondPosition);
+
+            yield return new WaitUntil(() => !ArePiecesMoving());
+
+            //uses 1 move
+            levelManager.UseMove();
+
+            yield return StartCoroutine(ResolveDoubleColorClearSwap());
+
+            isBusy=false;
+            yield break;
+        }
+
+        Piece colorClearPiece = null;
+
+        if (firstIsColorClear)
+        {
+            colorClearPiece = firstPiece;
+        }
+        else if (secondIsColorClear)
+        {
+            colorClearPiece = secondPiece;
+        }
+
+        //store other tokens color:
+        TokenType selectedType = firstIsColorClear ? secondPiece.TokenType : firstPiece.TokenType;
+
+
         SwapPieces(firstPosition, secondPosition);
 
         yield return new WaitUntil(() => !ArePiecesMoving());
+
+        //color clear activates without needing a normal match
+        if (colorClearPiece != null)
+        {
+            levelManager.UseMove();
+
+            yield return StartCoroutine(ResolveColorClearSwap(colorClearPiece, selectedType));
+
+            isBusy = false;
+            yield break;
+        }
 
         List <Piece> matches = matchDetector.FindMatches(board, width, height);
         
@@ -288,14 +343,51 @@ public class BoardManager : MonoBehaviour
             //give player time to see the match 
             yield return new WaitForSeconds(matchDelay);
 
+            //remember all original matched positions
+            //including token that may turn into powerup
+            List<Piece> originalMatches = new List<Piece>(matches);
+
             if (awardPoints)
             {
-                DamageObstaclesOnMatches(matches);
-
-                if(firstMatchResolution && firstSwap.HasValue && secondSwap.HasValue)
+                if (firstMatchResolution && firstSwap.HasValue && secondSwap.HasValue)
                 {
-                    TryCreateLinePowerup(matches, firstSwap.Value, secondSwap.Value);
+                    //try creating bomb first
+                    bool bombCreated = TryCreateBombPowerup(matches, secondSwap.Value, firstSwap.Value);
+
+                    //if no bomb was created try creating line powerup
+                    if (!bombCreated)
+                    {
+                        TryCreateLinePowerup(matches, firstSwap.Value, secondSwap.Value);
+                    }
                 }
+                else if (!firstMatchResolution || !firstSwap.HasValue || !secondSwap.HasValue)
+                {
+                    //cascades can also create bombs
+                    bool bombCreated = TryCreateBombPowerup(matches);
+
+                    //otherwise create horizontal/vertical powerup
+                    if (!bombCreated)
+                    {
+                        TryCreateCascadePowerUp(matches);
+                    }
+                }
+
+                //activate existing powerups within the match
+                ExpandPowerupClears(matches);
+
+                //Obstacles take damage in all affected positions
+                //including the surviving new powerups position
+                List<Piece> obstacleHits = new List<Piece>(originalMatches);
+
+                foreach (Piece piece in matches)
+                {
+                    if (piece != null && !obstacleHits.Contains(piece))
+                    {
+                        obstacleHits.Add(piece);
+                    }
+                }
+
+                DamageObstaclesOnMatches(obstacleHits);
             }
 
             firstMatchResolution = false;
@@ -348,6 +440,104 @@ public class BoardManager : MonoBehaviour
 
 
         isBusy = false;
+    }
+
+    private IEnumerator ResolveColorClearSwap(Piece colorClearPiece, TokenType selectedType)
+    {
+
+        //Starts the color clear with tokens self
+        List<Piece> piecesToClear = new List<Piece> { colorClearPiece };
+
+        //this collects every token in the selected color
+        //aswell as activates all the powerups selected
+        ExpandPowerupClears(piecesToClear, colorClearPiece, selectedType);
+
+        //pause before destruction
+        yield return new WaitForSeconds(matchDelay);
+
+        //damagae obstacles affected by tokens
+        DamageObstaclesOnMatches(piecesToClear);
+
+        //award points for every cleared token
+        levelManager.AddClearedTokens(piecesToClear.Count);
+
+        //updated collection objectives
+        foreach (Piece piece in piecesToClear)
+        {
+            if(piece != null)
+            {
+                levelManager.AddCollectedToken(piece.TokenType);
+            }
+        }
+
+        //destroy the color clear and affacted tokens
+        DestroyMatches(piecesToClear);
+
+        yield return new WaitForSeconds(fallDelay);
+
+        //existing method refill
+        CollapseBoard();
+
+        yield return new WaitUntil(() => !ArePiecesMoving());
+
+        RefillBoard();
+
+        yield return new WaitUntil(() => !ArePiecesMoving());
+
+        yield return StartCoroutine(ResolveBoard(true));
+
+    }
+    
+    private IEnumerator ResolveDoubleColorClearSwap()
+    {
+        List<Piece> allPieces = new List<Piece>();
+
+        //collect every token on the board
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                Piece piece = board[x, y];
+
+                if (piece != null)
+                {
+                    allPieces.Add(piece);
+                }
+            }
+        }
+
+        //give player a second to see combo
+        yield return new WaitForSeconds(matchDelay);
+
+        //Damage obstacles
+        DamageObstaclesOnMatches(allPieces);
+
+        //awward score
+        levelManager.AddClearedTokens(allPieces.Count);
+
+        //count all destroyed tokens toward the collection objectives 
+        foreach (Piece piece in allPieces)
+        {
+            if (piece != null)
+            {
+                levelManager.AddCollectedToken(piece.TokenType);
+            }
+        }
+
+        //destroy every token
+        DestroyMatches(allPieces);
+
+        //show empty board
+        yield return new WaitForSeconds(fallDelay);
+
+        //refill board
+        RefillBoard();
+
+        yield return new WaitUntil(() => !ArePiecesMoving());
+
+        //resolve any matches from refill
+        //also win/lose check
+        yield return StartCoroutine(ResolveBoard(true));
     }
 
 
@@ -475,6 +665,15 @@ public class BoardManager : MonoBehaviour
         //swap identical colors changes nothing
         if (first == null || second == null) { return false; }
 
+        bool firstColorClear = first.powerupType == PowerupType.ClearColor;
+
+        bool secondColorClear = second.powerupType == PowerupType.ClearColor;
+
+        if(firstColorClear || secondColorClear)
+        {
+            return true;
+        }
+
         //temp swap in array
         board[x1, y1] = second;
         board[x2, y2] = first;
@@ -550,6 +749,9 @@ public class BoardManager : MonoBehaviour
 
             if (!matches.Contains(piece)) continue;
 
+            //Dont overwrite an existing powerup
+            if (piece.powerupType != PowerupType.none) continue;
+
             PowerupType type = GetFourMatchPowerup(position);
 
             if (type == PowerupType.none) continue;
@@ -566,7 +768,102 @@ public class BoardManager : MonoBehaviour
         }
     }
 
-    private void ExpandPowerupClears(List<Piece> matches)
+    private void TryCreateCascadePowerUp(List<Piece> matches)
+    {
+        Piece powerupPiece = null;
+        PowerupType powerupType = PowerupType.none;
+
+        //check all tokens involved in the cascade match
+        foreach (Piece piece in matches)
+        {
+            if (piece == null) continue;
+
+            //dont replace existing powerups
+            if (piece.powerupType != PowerupType.none) continue;
+
+            //check for if token is vertical or horizontal match of 4+
+            PowerupType type = GetFourMatchPowerup(piece.gridposition);
+
+            if (type == PowerupType.none) continue;
+
+            powerupPiece = piece;
+            powerupType = type;
+            break;
+        }
+
+        //no match of for found
+        if (powerupPiece == null) return;
+
+        //keep one token alive to become the powerup
+        matches.Remove(powerupPiece);
+
+        //Give it the powerup and its visual prefab
+        powerupPiece.SetPowerupType(powerupType);
+    }
+
+    private bool TryCreateBombPowerup(List<Piece> matches, Vector2Int? perferredPosition = null, Vector2Int? alternatePosition = null)
+    {
+        List<Piece> candidates = new List<Piece>();
+
+        //for player swaps, perfer the swapped positions.
+        if (perferredPosition.HasValue)
+        {
+            candidates.Add(GetPiece(perferredPosition.Value));
+        }
+
+        if (alternatePosition.HasValue)
+        {
+            candidates.Add(GetPiece(alternatePosition.Value));
+        }
+
+        //also inspect every matched piece, allows bomb to form during cascades
+        candidates.AddRange(matches);
+
+        foreach (Piece piece in matches)
+        {
+            if (piece == null) continue;
+
+            if (!matches.Contains(piece)) continue;
+
+            //dont replace existing powerup
+            if (piece.powerupType != PowerupType.none) continue;
+
+            Vector2Int position = piece.gridposition;
+            TokenType type = piece.TokenType;
+
+            //count connected tokens horizontally
+            int horizontalCount = 1;
+
+            horizontalCount += CountMatchingTokens(position, Vector2Int.left, type);
+
+            horizontalCount += CountMatchingTokens(position, Vector2Int.right, type);
+
+            //count connected tokens vertically
+            int verticalCount = 1;
+
+            verticalCount += CountMatchingTokens(position, Vector2Int.up, type);
+
+            verticalCount += CountMatchingTokens(position, Vector2Int.down, type);
+
+
+            //Given a 'T' or 'L' intersection has at least 3 matching pieces in both directions
+            if(horizontalCount >= 3 && verticalCount >= 3)
+            {
+                //keep the intersection piece alive
+                matches.Remove(piece);
+
+                //convert to a bomb
+                piece.SetPowerupType(PowerupType.Bomb);
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
+    private void ExpandPowerupClears(List<Piece> matches, Piece selectedColorClear = null, TokenType? selectedType = null)
     {
         //this tracks tokens that are going to be destroyed
         HashSet<Piece> AffectedPieces = new HashSet<Piece>(matches);
@@ -613,6 +910,52 @@ public class BoardManager : MonoBehaviour
                     }
                 }
                 Debug.Log("Vertical Powerup Activated");
+            }
+            else if (piece.powerupType == PowerupType.Bomb)
+            {
+                //Destroy every token ina 3x3 area
+                for (int offsetX = -1; offsetX <= 1; offsetX++)
+                {
+                    for (int offsetY = -1; offsetY <= 1; offsetY++)
+                    {
+                        Vector2Int targetPosition = new Vector2Int(position.x + offsetX, position.y + offsetY);
+
+                        //ignore grid pos outside board
+                        if (!IsInsideBoard(targetPosition)) continue;
+
+                        Piece target = board[targetPosition.x, targetPosition.y];
+
+                        if (target != null && AffectedPieces.Add(target))
+                        {
+                            //Chain into any other powerups
+                            powerupQueue.Enqueue(target);
+                        }
+                    }
+                }
+            }
+            else if (piece.powerupType == PowerupType.ClearColor)
+            {
+                //for a direct swap use that other tokens color,
+                //but for a chained activation use this tokens own color
+                TokenType colorToClear = piece == selectedColorClear && selectedType.HasValue ? selectedType.Value : piece.TokenType;
+
+                for (int x = 0; x < width; x++)
+                {
+                    for (int y = 0; y < height; y++)
+                    {
+                        Piece target = board[x, y];
+
+                        if (target == null) continue;
+
+                        if (target.TokenType != colorToClear) continue;
+
+                        if (AffectedPieces.Add(target))
+                        {
+                            //other powerups caught in the clear also activate as part of the chain
+                            powerupQueue.Enqueue(target);
+                        }
+                    }
+                }
             }
         }
 
