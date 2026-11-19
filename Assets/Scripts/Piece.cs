@@ -128,8 +128,14 @@ public class Piece : MonoBehaviour
         currentPowerupVisual = Instantiate(prefabToSpawn, transform);
 
         currentPowerupVisual.transform.localPosition = Vector3.zero;
-
         //currentPowerupVisual.transform.localRotation = Quaternion.identity;
+
+        PowerupVisualAnimator animator = currentPowerupVisual.GetComponent<PowerupVisualAnimator>();
+
+        if (animator != null)
+        {
+            animator.PlaySpawnPop();
+        }
     }
 
     //this is what actually sets each type

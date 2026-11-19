@@ -82,7 +82,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 6286595657586805340, guid: 25500b1da42ee8c4d9cd081f214d03d9, type: 3}
+  m_Sprite: {fileID: 10993999755062451, guid: a73bad4cf41546b43aff30dfdbb4d041, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -107,15 +107,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Piece
   TokenType: 0
   powerupType: 0
-  horizontalPowerupVisualPrefab: {fileID: 7870948836175544487, guid: 653568021098dd3468c3a76d92166607, type: 3}
-  verticalPowerupVisualPrefab: {fileID: 3471412265943613292, guid: 52311656b16347441a3221cb741a79c7, type: 3}
-  bombPowerupVisualPrefab: {fileID: 8263740381870099454, guid: 4ac72d3b6c5240244918441538a1e3c8, type: 3}
-  colorClearVisualPrefab: {fileID: 4675519808465316487, guid: cd2c9783db9217640947cad302964154, type: 3}
+  horizontalPowerupVisualPrefab: {fileID: 3851780126302748489, guid: 653568021098dd3468c3a76d92166607, type: 3}
+  verticalPowerupVisualPrefab: {fileID: 6472332418088305500, guid: 52311656b16347441a3221cb741a79c7, type: 3}
+  bombPowerupVisualPrefab: {fileID: 6993980640774578858, guid: 4ac72d3b6c5240244918441538a1e3c8, type: 3}
+  colorClearVisualPrefab: {fileID: 6992769056932369801, guid: cd2c9783db9217640947cad302964154, type: 3}
   gridposition: {x: 0, y: 0}
-  redSprite: {fileID: 6286595657586805340, guid: 25500b1da42ee8c4d9cd081f214d03d9, type: 3}
-  blueSprite: {fileID: -6429493399158520243, guid: 549af249d020bcc4bb8d9e01812754c7, type: 3}
-  greenSprite: {fileID: -4987337320017983735, guid: cab61882cd1b70d408317648242eb40e, type: 3}
-  yellowSprite: {fileID: 6358040702757662528, guid: b3221a1e33770694884cac78d7f2a1fd, type: 3}
-  purpleSprite: {fileID: -8923911374754931897, guid: 5efc9fec0904385479744fe7697e138c, type: 3}
-  orangeSprite: {fileID: 4121880872312635667, guid: 5655498f065150948a57f2e9829a2901, type: 3}
+  redSprite: {fileID: 1755331965181097315, guid: 299d7ade17afdaa449cf589bc6f02949, type: 3}
+  blueSprite: {fileID: 10993999755062451, guid: a73bad4cf41546b43aff30dfdbb4d041, type: 3}
+  greenSprite: {fileID: -2913178247808094190, guid: 7cffe70c885fab44fa80e7b447bb6f66, type: 3}
+  yellowSprite: {fileID: 7233830086103188320, guid: d71c6013f5b3d264691003e22d3db0d2, type: 3}
+  purpleSprite: {fileID: 1723326546572939212, guid: e18fb955fd0e7cd4f9c8e82f8e020f12, type: 3}
+  orangeSprite: {fileID: 2465171733431060455, guid: 189b68e78b5862246acda871dd0fd0ed, type: 3}
   moveDuration: 0.2
